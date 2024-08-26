@@ -1,5 +1,8 @@
+# GCP project
+gcp_project = "radware-alteon"
+
 # AWS region to deploy the resources
-region = "us-east-1"
+region = "us-central1"
 
 # CIDR block for the VPC
 vpc_cidr = "10.0.0.0/16"
@@ -7,20 +10,29 @@ vpc_cidr = "10.0.0.0/16"
 # List of CIDR blocks for the subnets, should be /24
 subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 
+#IP interface for client side (needs to be within relevant the CIDR block. x.x.x.1 is reserved for GCP default gateway - do not use it)
+adc_clients_private_ip = "10.0.2.2"
+
+#IP interface for server side (needs to be within relevant the CIDR block. x.x.x.1 is reserved for GCP default gateway - do not use it)
+adc_servers_private_ip = "10.0.3.2"
+
+#proxy IP for server side
+adc_servers_private_ip_pip = "10.0.3.3"
+
 # Availability zone for the subnets
 availability_zone = "a"
 
-# EC2 instance type
-instance_type = "c4.large"
+# instance type
+instance_type = "e2-highcpu-4"
 
 # AMI ID for the EC2 instance
-ami_id = "ami-09fd2b8b128dc0f2d"
+ami_id = "projects/radware-alteon/global/images/alteon-os-ubuntu18-5-ndebug-gcp"
 
 # Unique identifier for each deployment
 deployment_id = "default"
 
 # Admin password
-admin_password = "password1"
+admin_password = "radware123"
 
 # Admin username
 admin_user = "admin"
