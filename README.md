@@ -1,57 +1,42 @@
-# AWS Alteon ADC Deployment with Terraform
-This Terraform project deploys an AWS VPC with management, data, and server subnets, security groups, network interfaces, and an EC2 instance configured with specific user data.
+# GCP Alteon ADC Deployment with Terraform
+This Terraform project deploys an Alteon instance in GCP with management, data, and server subnets, security groups, network interfaces, and an instance configured with specific user data.
 
 ## Prerequisites
 
-- Terraform installed on your local machine.
-- AWS CLI installed and configured with your credentials.
+- GCP CLI (gcloud) installed on your local machine: Ensure that you have the gcloud CLI installed and configured with your GCP credentials.
+- Terraform installed: Make sure Terraform is installed on your local machine.
 
-### Installing AWS CLI
+### Installing GCP CLI (gcloud)
 
-To install AWS CLI, follow these steps:
+To install the gcloud CLI, follow these steps:
 
-1. **Download the AWS CLI Installer**
+1. **Download and install the Google Cloud SDK**
 
-   For Windows, download the installer from [AWS CLI Windows Installer](https://awscli.amazonaws.com/AWSCLIV2.msi).
+   For Windows, download the installer from [Google Cloud SDK Installer](https://cloud.google.com/sdk/docs/install).
 
    For macOS, you can use Homebrew:
 
    ```sh
-   brew install awscli
+   brew install --cask google-cloud-sdk
    ```
 
    For Linux, you can use a package manager like `apt` for Debian-based distributions:
 
    ```sh
-   sudo apt-get update
-   sudo apt-get install awscli
+   sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg
+   echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+   sudo apt-get update && sudo apt-get install -y google-cloud-sdk
    ```
 
-   Or `yum` for Red Hat-based distributions:
+2. **Initialize the GCP CLI**
+
+   After installation, initialize the gcloud CLI by running:
 
    ```sh
-   sudo yum install awscli
+   gcloud init
    ```
+   Follow the prompts to configure your GCP project and authenticate your credentials.
 
-2. **Verify the Installation**
-
-   After installation, verify that AWS CLI is installed correctly by running:
-
-   ```sh
-   aws --version
-   ```
-
-3. **Configure AWS CLI**
-
-   Configure your AWS CLI with your credentials by running:
-
-   ```sh
-   aws configure
-   ```
-
-   You will be prompted to enter your AWS Access Key ID, Secret Access Key, region, and output format.
-
-By ensuring that AWS CLI is installed and configured, you will be able to interact with AWS services from your local machine.
 
 ### 2. Configure Variables
 
@@ -64,8 +49,11 @@ cp terraform.tfvars.example terraform.tfvars
 Edit the `terraform.tfvars` file to customize the values according to your environment:
 
 ```plaintext
-# AWS region to deploy the resources
-region = "us-east-1"
+# GCP project ID
+gcp_project = "radware-alteon"
+
+# GCP region to deploy the resources
+region = "us-central1"
 
 # CIDR block for the VPC
 vpc_cidr = "10.0.0.0/16"
@@ -73,23 +61,35 @@ vpc_cidr = "10.0.0.0/16"
 # List of CIDR blocks for the subnets, should be /24
 subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 
+# IP interface for client side (needs to be within the relevant CIDR block. x.x.x.1 is reserved for GCP default gateway - do not use it)
+adc_clients_private_ip = "10.0.2.2"
+
+# IP interface for server side (needs to be within the relevant CIDR block. x.x.x.1 is reserved for GCP default gateway - do not use it)
+adc_servers_private_ip = "10.0.3.2"
+
+# Proxy IP for server side
+adc_servers_private_ip_pip = "10.0.3.3"
+
 # Availability zone for the subnets
-availability_zone = "a"
+availability_zone = "us-central1-a"
 
-# EC2 instance type
-instance_type = "c4.large"
+# Instance type
+instance_type = "e2-highcpu-4"
 
-# AMI ID for the EC2 instance
-ami_id = "ami-09fd2b8b128dc0f2d"
+# Machine Image for the GCP instance
+machine_image = "projects/radware-alteon/global/images/alteon-os-ubuntu18-5-ndebug-gcp"
 
 # Unique identifier for each deployment
 deployment_id = "default"
 
 # Admin password
-admin_password = "password1"
+admin_password = "radware123"
 
 # Admin username
 admin_user = "admin"
+
+# Is GEL enabled for this deployment
+gel_enabled = false
 
 # GEL primary URL
 gel_url_primary = "http://primary.gel.example.com"
@@ -149,7 +149,7 @@ hst2_facility = 0
 hst2_module = "all"
 
 # Port for syslog host 2
-hst2_port = 514
+hst2_port
 ```
 
 ### 3. Initialize Terraform
@@ -189,7 +189,7 @@ terraform apply
 
 ## User Data Template
 
-The `userdata.tpl` file is used to configure the EC2 instance. 
+The `userdata.tpl` file is used to configure the GCP instance. 
 It includes variables for admin credentials, GEL URLs, VM name, and syslog configuration. 
 The template file is populated with values from `terraform.tfvars` during the deployment.
 
@@ -203,5 +203,5 @@ terraform destroy
 
 ## Notes
 
-- Ensure that your AWS credentials are configured correctly.
-- Review the security group rules and adjust as needed to match your security requirements.
+- Ensure that your GCP credentials are configured correctly.
+- Review the firewall rules and adjust as needed to match your security requirements.
