@@ -93,7 +93,7 @@ resource "google_compute_firewall" "adc_alteon_servers_sg" {
 resource "google_compute_instance" "adc_instance" {
   name         = "adc-instance-${var.deployment_id}"
   machine_type = var.instance_type
-  zone         = "${var.region}-${var.availability_zone}"
+  zone         = var.zone
 
   boot_disk {
     auto_delete = true
@@ -105,12 +105,16 @@ resource "google_compute_instance" "adc_instance" {
   }
 
   labels = {
+    environment = var.deployment_id
+    managed_by  = "terraform"
+    application = "alteon-adc"
     goog-ec-src = "vm_add-tf"
   }
 
   network_interface {
     subnetwork = google_compute_subnetwork.adc_mgmt_subnet.name
-    
+    network_ip = var.cc_local_ip
+
     # Adding external IP for management interface
     access_config {
       // Leaving this empty will assign an ephemeral external IP
@@ -120,10 +124,12 @@ resource "google_compute_instance" "adc_instance" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.adc_data_subnet.name
+    network_ip = var.adc_clients_private_ip
   }
 
   network_interface {
     subnetwork = google_compute_subnetwork.adc_servers_subnet.name
+    network_ip = var.adc_servers_private_ip
     # If alias IPs are needed, uncomment and define appropriately:
     # alias_ip_range {
     #   ip_cidr_range = "10.0.3.0/24"  # Adjust as needed
@@ -137,80 +143,58 @@ resource "google_compute_instance" "adc_instance" {
   }
 
   service_account {
-    email  = "591546275183-compute@developer.gserviceaccount.com"
+    email  = var.service_account_email != "" ? var.service_account_email : null
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   metadata = {
-    user-data = "Initial provisioning. Instance will be updated and started."
+    user-data = local.rendered_userdata
   }
 
   tags = ["adc-instance"]
 
   lifecycle {
     ignore_changes = [
-      metadata,
       scheduling,
     ]
   }
 }
 
-# Render the userdata.tpl template with the variables
-data "template_file" "rendered_userdata" {
-  template = file("${path.module}/userdata.tpl")
-
-  vars = {
-    admin_user         = var.admin_user
-    admin_password     = var.admin_password
-    gel_enabled        = var.gel_enabled
-    gel_url_primary    = var.gel_url_primary
-    gel_url_secondary  = var.gel_url_secondary
-    vm_name            = var.vm_name
-    gel_ent_id         = var.gel_ent_id
-    gel_throughput_mb  = var.gel_throughput_mb
-    gel_dns_pri        = var.gel_dns_pri
-    ntp_primary_server = var.ntp_primary_server
-    ntp_tzone          = var.ntp_tzone
-    cc_local_ip        = var.cc_local_ip
-    cc_remote_ip       = var.cc_remote_ip
-    adc_clients_private_ip = google_compute_instance.adc_instance.network_interface[1].network_ip
-    adc_servers_private_ip = google_compute_instance.adc_instance.network_interface[2].network_ip
+# Render the userdata.tpl template with the variables using native templatefile function
+locals {
+  rendered_userdata = templatefile("${path.module}/userdata.tpl", {
+    admin_user                 = var.admin_user
+    admin_password             = var.admin_password
+    gel_enabled                = var.gel_enabled
+    gel_url_primary            = var.gel_url_primary
+    gel_url_secondary          = var.gel_url_secondary
+    vm_name                    = var.vm_name
+    gel_ent_id                 = var.gel_ent_id
+    gel_throughput_mb          = var.gel_throughput_mb
+    gel_dns_pri                = var.gel_dns_pri
+    ntp_primary_server         = var.ntp_primary_server
+    ntp_tzone                  = var.ntp_tzone
+    cc_local_ip                = var.cc_local_ip
+    cc_remote_ip               = var.cc_remote_ip
+    adc_clients_private_ip     = var.adc_clients_private_ip
+    adc_servers_private_ip     = var.adc_servers_private_ip
     adc_servers_private_ip_pip = var.adc_servers_private_ip_pip
-    hst1_ip            = var.hst1_ip
-    hst1_severity      = var.hst1_severity
-    hst1_facility      = var.hst1_facility
-    hst1_module        = var.hst1_module
-    hst1_port          = var.hst1_port
-    hst2_ip            = var.hst2_ip
-    hst2_severity      = var.hst2_severity
-    hst2_facility      = var.hst2_facility
-    hst2_module        = var.hst2_module
-    hst2_port          = var.hst2_port
-  }
+    hst1_ip                    = var.hst1_ip
+    hst1_severity              = var.hst1_severity
+    hst1_facility              = var.hst1_facility
+    hst1_module                = var.hst1_module
+    hst1_port                  = var.hst1_port
+    hst2_ip                    = var.hst2_ip
+    hst2_severity              = var.hst2_severity
+    hst2_facility              = var.hst2_facility
+    hst2_module                = var.hst2_module
+    hst2_port                  = var.hst2_port
+  })
 }
 
 resource "local_file" "userdata_file" {
-  content  = data.template_file.rendered_userdata.rendered
+  content  = local.rendered_userdata
   filename = "${path.module}/rendered_userdata.tpl"
-}
-
-
-resource "null_resource" "update_and_start_instance" {
-  triggers = {
-    instance_id = google_compute_instance.adc_instance.id
-  }
-
-  provisioner "local-exec" {
-    command = "gcloud compute instances add-metadata ${google_compute_instance.adc_instance.name} --metadata-from-file user-data=${local_file.userdata_file.filename} --zone=${google_compute_instance.adc_instance.zone}"
-  }
-
-  provisioner "local-exec" {
-    command = "gcloud compute instances add-metadata ${google_compute_instance.adc_instance.name} --metadata adc_clients_private_ip=${google_compute_instance.adc_instance.network_interface[1].network_ip},adc_servers_private_ip=${google_compute_instance.adc_instance.network_interface[2].network_ip} --zone=${google_compute_instance.adc_instance.zone}"
-  }
-
-  provisioner "local-exec" {
-    command = "gcloud compute instances start ${google_compute_instance.adc_instance.name} --zone=${google_compute_instance.adc_instance.zone}"
-  }
 }
 
 # Outputs for IP addresses

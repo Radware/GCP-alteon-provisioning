@@ -20,22 +20,29 @@ variable "subnet_cidrs" {
 }
 
 variable "adc_clients_private_ip" {
-  description = "List of CIDR blocks for the subnets, should be /24"
+  description = "Private IP address for the client-side interface (must be within the data subnet CIDR)"
   default     = "10.0.2.2"
 }
+
 variable "adc_servers_private_ip" {
-  description = "List of CIDR blocks for the subnets, should be /24"
+  description = "Private IP address for the server-side interface (must be within the servers subnet CIDR)"
   default     = "10.0.3.2"
 }
 
 variable "adc_servers_private_ip_pip" {
-  description = "List of CIDR blocks for the subnets, should be /24"
+  description = "Proxy IP address for the server-side interface"
   default     = "10.0.3.3"
 }
 
 variable "availability_zone" {
-  description = "the GCP availability zone for deploying resources"
-  default     = "any"
+  description = "DEPRECATED: Use 'zone' variable instead. The GCP availability zone for deploying resources"
+  default     = "a"
+}
+
+variable "zone" {
+  description = "The full GCP zone for deploying resources (e.g., us-central1-a)"
+  type        = string
+  default     = "us-central1-a"
 }
 
 variable "instance_type" {
@@ -44,8 +51,15 @@ variable "instance_type" {
 }
 
 variable "ami_id" {
-  description = "GCP image ID for the instance"
-  default     = "projects/radware-alteon/global/images/alteon-os-ubuntu18-5-ndebug-gcp"
+  description = "GCP image ID for the instance (from GCP Marketplace)"
+  type        = string
+  default     = "projects/radware-public/global/images/radware-alteon-va"
+}
+
+variable "service_account_email" {
+  description = "Service account email for the instance. Leave empty to use the default compute service account"
+  type        = string
+  default     = ""
 }
 
 variable "deployment_id" {
@@ -57,46 +71,48 @@ variable "deployment_id" {
 variable "security_ports_mgmt" {
   description = "security ports for GCP firewall for management"
   type        = list(string)
-  default = ["22", "3121", "2222", "443", "8443"]
+  default     = ["22", "3121", "2222", "443", "8443"]
 }
 variable "security_ports_data" {
   description = "security ports for GCP firewall for FE data"
   type        = list(string)
-  default = ["22", "3121", "2222", "443", "8443"]
+  default     = ["22", "3121", "2222", "443", "8443"]
 }
 variable "security_ports_servers" {
   description = "security ports for GCP firewall for BE servers"
   type        = list(string)
-  default = ["22", "3121", "2222", "443", "8443"]
+  default     = ["22", "3121", "2222", "443", "8443"]
 }
 
 #allow inbound traffic from source IPs for management
 variable "security_source_IP_ranges_mgmt" {
   description = "source IPs allowed for inbound traffic"
   type        = list(string)
-  default = ["0.0.0.0/0"]
+  default     = ["0.0.0.0/0"]
 }
 #allow inbound traffic from source IPs for data-FE
 variable "security_source_IP_ranges_data" {
   description = "source IPs allowed for inbound traffic"
   type        = list(string)
-  default = ["0.0.0.0/0"]
+  default     = ["0.0.0.0/0"]
 }
 #allow inbound traffic from source IPs for servers-BE
 variable "security_source_IP_ranges_servers" {
   description = "source IPs allowed for inbound traffic"
   type        = list(string)
-  default = ["0.0.0.0/0"]
+  default     = ["0.0.0.0/0"]
 }
 
 variable "admin_password" {
   description = "Admin password"
+  type        = string
   default     = "admin"
+  sensitive   = true
 }
 
 variable "admin_user" {
   description = "Admin username"
-  default="admin"
+  default     = "admin"
 }
 
 variable "gel_url_primary" {
