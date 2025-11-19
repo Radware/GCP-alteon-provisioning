@@ -1,7 +1,7 @@
-# GCP project
-gcp_project = "radware-alteon"
+# GCP project - Replace with your GCP project ID
+gcp_project = "your-gcp-project-id"
 
-# AWS region to deploy the resources
+# GCP region to deploy the resources
 region = "us-central1"
 
 # CIDR block for the VPC
@@ -20,25 +20,25 @@ adc_servers_private_ip = "10.0.3.2"
 adc_servers_private_ip_pip = "10.0.3.3"
 
 # Availability zone for the subnets
-availability_zone = "a"
+zone = "us-central1-a"
 
 # instance type
 instance_type = "e2-highcpu-4"
 
-# AMI ID for the EC2 instance
-ami_id = "projects/radware-alteon/global/images/alteon-os-ubuntu18-5-ndebug-gcp"
+# Machine Image for the GCP instance - Using public Radware Alteon image from GCP Marketplace
+ami_id = "projects/radware-public/global/images/radware-alteon-va"
 
 # Unique identifier for each deployment
 deployment_id = "default"
 
-# Admin password
-admin_password = "radware123"
+# Admin password - CHANGE THIS to a secure password
+admin_password = "ChangeMe123!"
 
 # Admin username
 admin_user = "admin"
 
 # Is GEL enabled for this deployment 
-get_enabled = false
+gel_enabled = false
 
 # GEL primary URL
 gel_url_primary = "http://primary.gel.example.com"
